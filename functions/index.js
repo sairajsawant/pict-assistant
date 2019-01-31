@@ -74,12 +74,12 @@ function showNextLecture(conv, params, signin) {
         getLectureOrLab.getLectureOrLab(email)
           .then(function (details) {
             lecture_details = details;
-            // getAttendanceDetails.getAttendanceDetails('C2K17207252', '$airaj111')
-            // .then(function (attendanceDetails) {
-            //   conv.ask(` Your average attendance is ${attendanceDetails[1]}`);
-            // })
-            conv.ask(` Your next lecture/lab is ${lecture_details['subjectname']} in ${lecture_details['location']}`);
-            resolve();
+            getAttendanceDetails.getAttendanceDetails('C2K17207252', '$airaj111')
+              .then(function (attendanceDetails) {
+                conv.ask(` Your average attendance is ${attendanceDetails[1]}`);
+                conv.ask(` Your next lecture/lab is ${lecture_details['subjectname']} in ${lecture_details['location']}`);
+                resolve();
+              })
           })
           .catch(function (errormsg) {
             conv.ask('College Done for today, ' + errormsg);
@@ -117,7 +117,7 @@ function showCanteenMenu(conv, params, signin) {
 
   return new Promise(function (resolve, reject) {
 
-    // Simple table
+    // //Simple table
     // conv.ask('Simple Response')
     // conv.ask(new Table({
     //   dividers: true,
