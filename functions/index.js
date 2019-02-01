@@ -9,6 +9,8 @@ const {
   Button,
   Image,
   BrowseCarousel,
+  Suggestions,
+  UpdatePermission
 } = require('actions-on-google'); // Import the firebase-functions package for deployment.
 const functions = require('firebase-functions'); // Instantiate the Dialogflow client.
 const app = dialogflow({
@@ -76,6 +78,7 @@ function showNextLecture(conv, params, signin) {
             lecture_details = details;
             getAttendanceDetails.getAttendanceDetails('C2K17207252', '$airaj111')
               .then(function (attendanceDetails) {
+
                 conv.ask(` Your average attendance is ${attendanceDetails[1]}`);
                 conv.ask(` Your next lecture/lab is ${lecture_details['subjectname']} in ${lecture_details['location']}`);
                 resolve();
@@ -99,11 +102,11 @@ function showRecentSessions(conv) {
 
     getLectureOrLab.getEvents().then((items_from_db) => {
 
+      conv.ask(new Suggestions('Notify College Events!'));
       conv.ask("Here are some upcoming Sessions and Events!")
       conv.ask(new BrowseCarousel({
         items: items_from_db,
       }));
-      conv.ask(new Suggestions('Notify me about new college events!'));
       resolve();
     })
 
@@ -111,7 +114,9 @@ function showRecentSessions(conv) {
 }
 
 app.intent('push_notif_setup', (conv) => {
-  conv.ask(new UpdatePermission({intent: 'sessions'}));
+  conv.ask(new UpdatePermission({
+    intent: 'sessions'
+  }));
 });
 
 
@@ -120,45 +125,48 @@ app.intent('finish_push_notif_setup', (conv, params) => {
     //const userID = conv.user.id;
     const userID = conv.arguments.get('UPDATES_USER_ID');
     conv.user.storage.userID = userID;
+    console.log('called');
     // code to save intent and userID in your db
-    conv.close(`Ok, I'll start alerting you.`);
+    conv.ask(`Ok, I'll start alerting you.`);
   } else {
-    conv.close(`Ok, I won't alert you.`);
+    conv.ask(`Ok, I won't alert you.`);
   }
 });
 
-const google = require('googleapis');
+const {
+  google
+} = require('googleapis');
 const key = require('./keys/service.json');
 
-let jwtClient = new google.auth.JWT(
-  key.client_email, null, key.private_key,
-  ['https://www.googleapis.com/auth/actions.fulfillment.conversation'],
-  null
-);
+// let jwtClient = new google.auth.JWT(
+//   key.client_email, null, key.private_key,
+//   ['https://www.googleapis.com/auth/actions.fulfillment.conversation'],
+//   null
+// );
 
-jwtClient.authorize((err, tokens) => {
-  // code to retrieve target userId and intent
-  let notif = {
-    userNotification: {
-      title: 'Good Morning Sairaj',
-    },
-    target: {
-      userId: conv.user.storage.userID,
-      intent: 'sessions',
-      locale: 'en-US'
-    },
-  };
+// jwtClient.authorize((err, tokens) => {
+//   // code to retrieve target userId and intent
+//   let notif = {
+//     userNotification: {
+//       title: 'Good Morning Sairaj',
+//     },
+//     target: {
+//       userId: conv.user.storage.userID,
+//       intent: 'sessions',
+//       locale: 'en-US'
+//     },
+//   };
 
-  request.post('https://actions.googleapis.com/v2/conversations:send', {
-    'auth': {
-      'bearer': tokens.access_token,
-     },
-    'json': true,
-    'body': {'customPushMessage': notif},
-  }, (err, httpResponse, body) => {
-     console.log(httpResponse.statusCode + ': ' + httpResponse.statusMessage);
-  });
-});
+//   request.post('https://actions.googleapis.com/v2/conversations:send', {
+//     'auth': {
+//       'bearer': tokens.access_token,
+//      },
+//     'json': true,
+//     'body': {'customPushMessage': notif},
+//   }, (err, httpResponse, body) => {
+//      console.log(httpResponse.statusCode + ': ' + httpResponse.statusMessage);
+//   });
+// });
 
 app.intent('canteen_menu', showCanteenMenu)
 
