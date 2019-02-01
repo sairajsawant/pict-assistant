@@ -103,13 +103,62 @@ function showRecentSessions(conv) {
       conv.ask(new BrowseCarousel({
         items: items_from_db,
       }));
+      conv.ask(new Suggestions('Notify me about new college events!'));
       resolve();
     })
 
   });
 }
 
+app.intent('push_notif_setup', (conv) => {
+  conv.ask(new UpdatePermission({intent: 'sessions'}));
+});
 
+
+app.intent('finish_push_notif_setup', (conv, params) => {
+  if (conv.arguments.get('PERMISSION')) {
+    //const userID = conv.user.id;
+    const userID = conv.arguments.get('UPDATES_USER_ID');
+    conv.user.storage.userID = userID;
+    // code to save intent and userID in your db
+    conv.close(`Ok, I'll start alerting you.`);
+  } else {
+    conv.close(`Ok, I won't alert you.`);
+  }
+});
+
+const google = require('googleapis');
+const key = require('./keys/service.json');
+
+let jwtClient = new google.auth.JWT(
+  key.client_email, null, key.private_key,
+  ['https://www.googleapis.com/auth/actions.fulfillment.conversation'],
+  null
+);
+
+jwtClient.authorize((err, tokens) => {
+  // code to retrieve target userId and intent
+  let notif = {
+    userNotification: {
+      title: 'Good Morning Sairaj',
+    },
+    target: {
+      userId: conv.user.storage.userID,
+      intent: 'sessions',
+      locale: 'en-US'
+    },
+  };
+
+  request.post('https://actions.googleapis.com/v2/conversations:send', {
+    'auth': {
+      'bearer': tokens.access_token,
+     },
+    'json': true,
+    'body': {'customPushMessage': notif},
+  }, (err, httpResponse, body) => {
+     console.log(httpResponse.statusCode + ': ' + httpResponse.statusMessage);
+  });
+});
 
 app.intent('canteen_menu', showCanteenMenu)
 
