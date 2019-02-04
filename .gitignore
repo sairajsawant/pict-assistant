@@ -4,4 +4,4 @@ node_modules
 npm-debug.log
 firebase.json
 functions/bckup
-functions/keys
+functions/bckup/keys
