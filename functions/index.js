@@ -10,7 +10,8 @@ const {
   Image,
   BrowseCarousel,
   Suggestions,
-  UpdatePermission
+  UpdatePermission,
+  List
 } = require('actions-on-google'); // Import the firebase-functions package for deployment.
 const functions = require('firebase-functions'); // Instantiate the Dialogflow client.
 const app = dialogflow({
@@ -94,6 +95,25 @@ function showNextLecture(conv, params, signin) {
 
 }
 
+app.intent('tnp', showRecentCompanies)
+
+function showRecentCompanies(conv) {
+
+  return new Promise(function (resolve, reject) {
+
+    getLectureOrLab.getCompanies().then((items_from_db) => {
+
+      conv.ask("Here are some upcoming Companies visiting for placements!")
+      conv.ask(new BrowseCarousel({
+        items: items_from_db,
+      }));
+      conv.ask('Which one do you want more information on?');
+      resolve();
+    })
+
+  });
+}
+
 app.intent('sessions', showRecentSessions)
 
 function showRecentSessions(conv) {
@@ -102,7 +122,9 @@ function showRecentSessions(conv) {
 
     getLectureOrLab.getEvents().then((items_from_db) => {
 
+      //  if (!conv.user.storage['userID']) {
       conv.ask(new Suggestions('Notify College Events!'));
+      //  }
       conv.ask("Here are some upcoming Sessions and Events!")
       conv.ask(new BrowseCarousel({
         items: items_from_db,
@@ -115,7 +137,7 @@ function showRecentSessions(conv) {
 
 app.intent('push_notif_setup', (conv) => {
   conv.ask(new UpdatePermission({
-    intent: 'sessions'
+    intent: 'tnp'
   }));
 });
 
@@ -133,40 +155,6 @@ app.intent('finish_push_notif_setup', (conv, params) => {
   }
 });
 
-const {
-  google
-} = require('googleapis');
-const key = require('./keys/service.json');
-
-// let jwtClient = new google.auth.JWT(
-//   key.client_email, null, key.private_key,
-//   ['https://www.googleapis.com/auth/actions.fulfillment.conversation'],
-//   null
-// );
-
-// jwtClient.authorize((err, tokens) => {
-//   // code to retrieve target userId and intent
-//   let notif = {
-//     userNotification: {
-//       title: 'Good Morning Sairaj',
-//     },
-//     target: {
-//       userId: conv.user.storage.userID,
-//       intent: 'sessions',
-//       locale: 'en-US'
-//     },
-//   };
-
-//   request.post('https://actions.googleapis.com/v2/conversations:send', {
-//     'auth': {
-//       'bearer': tokens.access_token,
-//      },
-//     'json': true,
-//     'body': {'customPushMessage': notif},
-//   }, (err, httpResponse, body) => {
-//      console.log(httpResponse.statusCode + ': ' + httpResponse.statusMessage);
-//   });
-// });
 
 app.intent('canteen_menu', showCanteenMenu)
 
@@ -228,3 +216,128 @@ function showAttendance(conv, params, signin) {
 }
 // Set the DialogflowApp object to handle the HTTPS POST request.
 exports.dialogflowFirebaseFulfillment = functions.https.onRequest(app);
+
+const FirestoreNames = {
+  CATEGORY: 'category',
+  CREATED_AT: 'created_at',
+  INTENT: 'intent',
+  TIP: 'tip',
+  TIPS: 'tips',
+  URL: 'url',
+  USERS: 'users',
+  USER_ID: 'userId',
+  EVENTS: 'events',
+};
+
+exports.eventNotify = functions.firestore
+  .document('events/{eventId}')
+  .onCreate((snap, context) => {
+    console.log("here hdsjkssjkd " + snap.data());
+
+    const {
+      google
+    } = require('googleapis');
+    const key = require('./keys/service.json');
+    const request = require('request');
+
+    let jwtClient = new google.auth.JWT(
+      key.client_email, null, key.private_key,
+      ['https://www.googleapis.com/auth/actions.fulfillment.conversation'],
+      null
+    );
+
+    jwtClient.authorize((err, tokens) => {
+      // code to retrieve target userId and intent
+      if (err) {
+        throw new Error(`Auth error: ${err}`);
+      }
+      let notif = {
+        userNotification: {
+          title: 'New Events for you!',
+        },
+        target: {
+          userId: 'ABwppHEbpSQ5dPE2JWnHSe4_Zq3QgtLkMVe0XrZP_1z-MgLIctJma2FEteHDVOl6sjeybrQprzosuKCbVQ8',
+          intent: 'sessions',
+          locale: 'en-US'
+        },
+      };
+
+      request.post('https://actions.googleapis.com/v2/conversations:send', {
+        'auth': {
+          'bearer': tokens.access_token,
+        },
+        'json': true,
+        'body': {
+          'customPushMessage': notif,
+          'isInSandbox': true
+        },
+      }, (err, httpResponse, body) => {
+        if (err) {
+          throw new Error(`API request error: ${err}`);
+        }
+        console.log(`${httpResponse.statusCode}: ` +
+          `${httpResponse.statusMessage}`);
+        console.log(JSON.stringify(body));
+      });
+    });
+    return 0;
+  });
+
+
+app.intent('tnp - select.number', (conv, params) => {
+  // Get the user's selection
+  // Compare the user's selections to each of the item's keys
+  console.log(params.number);
+
+  if (parseInt(params.number) == 1) {
+
+    if (!conv.surface.capabilities.has('actions.capability.SCREEN_OUTPUT')) {
+      conv.ask('Sorry, try this on a screen device or select the ' +
+        'phone surface in the simulator.');
+      return;
+    }
+    // Create a list
+    conv.ask(new Suggestions('Show me recommeneded resources!'));
+    conv.ask('Here are Skills required for Microsoft');
+    conv.ask(new List({
+      title: 'Skills required for Microsoft',
+      items: {
+        // Add the first item to the list
+        'one': {
+          synonyms: [
+            'synonym of title 1',
+            'synonym of title 2',
+            'synonym of title 3',
+          ],
+          title: 'C, C++',
+        },
+        // Add the second item to the list
+        'two': {
+          synonyms: [
+            'Google Home Assistant',
+            'Assistant on the Google Home',
+          ],
+          title: 'Data Structures & Algorithms',
+        },
+        // Add the third item to the list
+        'three': {
+          synonyms: [
+            'Google Pixel XL',
+            'Pixel',
+            'Pixel XL',
+          ],
+          title: 'Networking',
+        },
+
+        'four': {
+          synonyms: [
+            'Google Pixel XL',
+            'Pixel',
+            'Pixel XL',
+          ],
+          title: 'Good Communication Skills & Team Player',
+        },
+      },
+    }));
+  }
+});

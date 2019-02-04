@@ -17,10 +17,10 @@ firebase.initializeApp({
 });
 
 const firestore = firebase.firestore();
-const settings = { /* your settings... */
-    timestampsInSnapshots: true
-};
-firestore.settings(settings);
+// const settings = { /* your settings... */
+//     timestampsInSnapshots: true
+// };
+// firestore.settings(settings);
 
 // Initialize Cloud Firestore through Firebase
 var db = firebase.firestore();
@@ -177,5 +177,33 @@ var getEvents = () => {
     
       });
 }
+
+var getCompanies = () => {
+
+    return new Promise(function (resolve, reject) {
+
+        // Create a browse carousel
+        var items_from_db = [];
+        db.collection("tnpdata").get().then(function(querySnapshot) {
+            querySnapshot.forEach(function(doc) {
+                // doc.data() is never undefined for query doc snapshots
+                items_from_db.push(new BrowseCarouselItem({
+                    title:` ${doc.data()['name']} - CTC ${doc.data()['ctc']} LPA`,
+                    url: doc.data()['apply_url'],
+                    description: `Required CGPA: ${doc.data()['cgpa']} \n  Date & Time : ${doc.data()['dateStr']}, ${doc.data()['reportingtime']} AM \n Venue : ${doc.data()['venue']}` ,
+                    footer: 'Click to apply!',
+                    image: new Image({
+                      url: doc.data()['logolink'],
+                      alt: 'PICT Image',
+                    }),
+                  }))
+            });
+        }).then( () => {
+          resolve(items_from_db);
+        })
+    
+      });
+}
+module.exports.getCompanies = getCompanies;
 module.exports.getEvents = getEvents;
 module.exports.getLectureOrLab = getLectureOrLab;
