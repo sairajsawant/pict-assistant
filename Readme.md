@@ -7,7 +7,7 @@
 #### Yes. You Read correct. Voice Commands only. Don't Believe on words, see Everyday Simplifier in Action through this video provided next.
 
 ## Video Walkthrough of Everyday Simplifier
-> https://www.youtube.com/watch?v=X79M2qxsrig
+> https://youtu.be/DJKYXXjw6no
 
 ## Operations Supported through Voice Commands
 
